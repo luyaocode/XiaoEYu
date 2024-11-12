@@ -9,6 +9,8 @@ import multer from 'multer';
 import fs_extra from 'fs-extra';
 import path from 'path';
 import crypto from 'crypto';
+import si from 'systeminformation';
+import { WebSocketServer } from 'ws';
 
 // 日志模块
 import { createLogger } from './logger.js';
@@ -298,13 +300,13 @@ async function getAllTagsWithPostCounts(withBlogs=true) {
     }
 }
 
-// 查询所有博客，按照文章时间降序排序
+// 查询所有博客，按照文章创建时间降序排序
 async function getAllBlogsWithTags() {
     try {
         const { Blog, Tag } = db;
         const blogsWithTags = await Blog.findAll({
             attributes: ["id", "title", "time"],
-            order: [['time', 'DESC']], // 按照时间字段倒序排序
+            order: [['createdAt', 'DESC']], // 按照时间字段倒序排序
             include: [
                 {
                     model: Tag,
@@ -1267,6 +1269,72 @@ app.post('/blog/img/upload', (AUTH_ENABLED ? [authMiddleware, upload.single('edi
 
 // 静态文件服务，提供访问上传的图片
 app.use('/blogImgs', express.static(uploadDir));
+
+
+// 获取系统资源信息
+// 创建 WebSocket 服务器
+const wss = new WebSocketServer({ noServer: true });
+// 定义定时推送函数
+// 获取系统资源信息的函数
+const getSystemStats = async () => {
+    try {
+      const cpu = await si.currentLoad();
+      const memory = await si.mem();
+      const fsData = await si.fsSize();  // 获取文件系统信息，包括多个磁盘
+
+      // 合并所有磁盘的使用情况
+      let totalSize = 0;   // 总磁盘容量
+      let totalUsed = 0;   // 已用磁盘容量
+      let totalDiskUsage = 0;  // 磁盘占用率加权总和
+      let totalDiskCount = 0;  // 磁盘数量（用于加权计算占用率）
+
+      fsData.forEach(disk => {
+        totalSize += disk.size;
+        totalUsed += disk.used;
+        totalDiskUsage += (disk.used / disk.size) * 100 * disk.size;  // 加权占用率
+        totalDiskCount += disk.size;
+      });
+
+      // 计算总磁盘占用率（加权平均）
+      const weightedDiskUsage = totalDiskUsage / totalSize;
+
+      // 格式化并返回系统资源统计信息
+      return {
+        cpuUsage: cpu.currentLoad.toFixed(2), // CPU 占用率（%）
+        memoryUsage: ((memory.active / memory.total) * 100).toFixed(2), // 内存占用率（%）
+        totalMemory: (memory.total / (1024 ** 3)).toFixed(2), // 总内存（GB）
+        diskUsage: weightedDiskUsage.toFixed(2), // 磁盘占用率（%）
+        totalDisk: (totalSize / (1024 ** 3)).toFixed(2), // 总磁盘量（GB）
+      };
+    } catch (error) {
+      console.error('Error retrieving system stats', error);
+      return null;
+    }
+};
+// 定义定时推送函数
+const sendSystemStats = async (ws) => {
+    const stats = await getSystemStats();
+    if (stats && ws.readyState === ws.OPEN) {
+      ws.send(JSON.stringify(stats)); // 发送系统统计信息
+    }
+};
+
+// 定时每5秒推送一次系统信息
+setInterval(() => {
+    getSystemStats();
+    wss.clients.forEach((client) => {
+      if (client.readyState === client.OPEN) {
+        sendSystemStats(client);
+      }
+    });
+}, 5000);
+
+// 升级 HTTP 服务器到 WebSocket 服务器
+server.on('upgrade', (request, socket, head) => {
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      wss.emit('connection', ws, request);
+    });
+});
 
 // 启动 Express 服务器
 server.listen(port, () => {

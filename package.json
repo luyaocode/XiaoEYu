@@ -18,9 +18,10 @@
     "nodemon": "^3.0.3",
     "sequelize": "^6.37.3",
     "sqlite3": "^5.1.7",
+    "systeminformation": "^5.23.5",
     "uuid": "^9.0.1",
     "winston": "^3.13.0",
-    "ws": "^6.2.3"
+    "ws": "^8.18.0"
   },
   "scripts": {
     "start": "cross-env NODE_ENV=prod node main.js",
