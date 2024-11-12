@@ -791,8 +791,8 @@ const port = 5001;
 let ssl_crt, ssl_key;
 let server, options;
 if (process.env.NODE_ENV === 'prod') {
-    ssl_crt = '/home/luyao/codes/solive-server/ssl/api.chaosgomoku.fun.pem';
-    ssl_key = '/home/luyao/codes/solive-server/ssl/api.chaosgomoku.fun.key';
+    ssl_crt = '/home/luyao/codes/XiaoEYu/ssl/api.chaosgomoku.fun.pem';
+    ssl_key = '/home/luyao/codes/XiaoEYu/ssl/api.chaosgomoku.fun.key';
     options = {
         key: fs.readFileSync(ssl_key),
         cert: fs.readFileSync(ssl_crt)
@@ -1270,7 +1270,7 @@ app.use('/blogImgs', express.static(uploadDir));
 
 // 启动 Express 服务器
 server.listen(port, () => {
-    logger.info(`Child process is listening on port: ${port}`);
+    logger.info(`server is listening on port: ${port}`);
 });
 
 // ////////////////////////////grpc
@@ -1305,7 +1305,7 @@ grpcServer.bindAsync(`0.0.0.0:${GRPC_PORT}`,
           console.error('Failed to bind server:', err);
           return;
         }
-        console.log(`Server running at port:${port}`);
+        console.log(`grpc server is listening on port:${port}`);
     }
 );
 
