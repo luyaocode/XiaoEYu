@@ -1,0 +1,40 @@
+# dependencies
+/node_modules
+
+# testing
+/coverage
+
+# production
+/build
+
+# misc
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# other
+.vscode/
+!.gitignore
+/ssl
+
+
+# 忽略文件夹中的所有内容
+temp/*
+uploads/*
+log/*
+blogImgs/*
+
+# 不忽略文件夹本身
+!temp
+!uploads
+!blogImgs
+
+deploy.sh
+*.db
+*.tar.gz
