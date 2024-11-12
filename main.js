@@ -93,10 +93,10 @@ const initdb = () => {
     // sequelize.sync({ force: true }); // 清空数据库，慎用
     sequelize.sync()
     .then(() => {
-        console.log('数据库已同步');
+        logger.info('数据库已同步');
     })
     .catch(err => {
-        console.error('同步失败:', err);
+        logger.error('同步失败:', err);
     });
 
     return { sequelize, Blog, Tag, BlogTag };
@@ -136,7 +136,7 @@ const authMiddleware = async (req, res, next) => {
       await verifyTokenPromise(token);
       next();
     } catch (error) {
-      console.error('Token verification failed:', error);
+      logger.error('Token verification failed:', error);
       return res.status(401).send("未授权");
     }
 };
@@ -159,14 +159,14 @@ const test = async () => {
 
             // 打印每个博客及其关联的标签
             blogs.forEach(blog => {
-                console.log(`博客 ID: ${blog.id}, 标题: ${blog.title}, 作者: ${blog.author}, 时间: ${blog.time}`);
-                console.log('关联的标签:');
+                logger.info(`博客 ID: ${blog.id}, 标题: ${blog.title}, 作者: ${blog.author}, 时间: ${blog.time}`);
+                logger.info('关联的标签:');
                 blog.Tags.forEach(tag => {
-                    console.log(`- ${tag.name}`);
+                    logger.info(`- ${tag.name}`);
                 });
             });
         } catch (error) {
-            console.error('查询失败:', error);
+            logger.error('查询失败:', error);
         }
     }
 
@@ -186,14 +186,14 @@ async function createTag(name, transaction = null) {
     try {
         let tag = await Tag.findOne({ where: { name } },transaction);
         if (tag) {
-            console.log(`标签已存在: ${tag.name}`);
+            logger.info(`标签已存在: ${tag.name}`);
             return;
         }
         tag = await Tag.create({ name }, {transaction});
-        console.log(`标签已创建: ${tag.name}`);
+        logger.info(`标签已创建: ${tag.name}`);
         return true;
     } catch (error) {
-        console.error('创建标签失败:', error);
+        logger.error('创建标签失败:', error);
         throw error;
     }
 }
@@ -293,7 +293,7 @@ async function getAllTagsWithPostCounts(withBlogs=true) {
 
         return tagsWithBlogs;
     } catch (error) {
-        console.error("Error fetching tags with blogs sorted by blog count:", error);
+        logger.error("Error fetching tags with blogs sorted by blog count:", error);
         throw error;
     }
 }
@@ -357,7 +357,7 @@ async function getTagIdsByNames(tagNames,transaction=null) {
         const tagIds = tags.map(tag => tag.id);
         return tagIds;
     } catch (error) {
-        console.error('Error fetching tag IDs:', error);
+        logger.error('Error fetching tag IDs:', error);
         throw error;
     }
 }
@@ -429,14 +429,14 @@ const postBlog = async (uuid, title, content,tags) => {
             await nestedTransaction.commit();
         }catch (nestedError) {
             await nestedTransaction.rollback(); // 回滚嵌套事务
-            console.error('嵌套事务发生错误:', nestedError);
+            logger.error('嵌套事务发生错误:', nestedError);
         }
         // 关联
         if (newPost) {
             const tagIds=await getTagIdsByNames(tags,transaction);
             newPost.setTags(tagIds);
         }
-        logger.info(`New post created: ${JSON.stringify(newPost.toJSON(), null, 2)}`);
+        logger.info(`New post created: ${uuid}`);
     } catch (error) {
         await transaction.rollback();
         logger.error('Error occurred:', error);
@@ -543,7 +543,7 @@ const getBlogsByTags = async (tags) => {
             group: ['Blog.id'], // 按博客 ID 分组
             having: Sequelize.literal(`COUNT("Tags"."id") = ${tags.length}`), // 确保所有标签都匹配
             order: [['time', 'DESC']], // 按时间倒序排序
-            logging: console.log // 记录 SQL 查询到控制台
+            logging: logger.info // 记录 SQL 查询到控制台
         });
 
         // 获取每个博客的标签
@@ -561,7 +561,7 @@ const getBlogsByTags = async (tags) => {
 
         return blogsWithTags;
     } catch (error) {
-        console.error('查询错误:', error);
+        logger.error('查询错误:', error);
         return [];
     }
 };
@@ -586,7 +586,7 @@ const getBlogById = async (id) => {
                 time: blog.time,
             };
 
-            logger.info(`Found blog - Title: ${result.title}, Author: ${result.author}, Content: ${result.content},,Time: ${result.time}`);
+            logger.info(`Found blog - Title: ${result.title}, Author: ${result.author}, Content: ${result.content.substring(0,20)},,Time: ${result.time}`);
             return result;
         } else {
             logger.info(`No blog found with id: ${id}`);
@@ -974,7 +974,7 @@ app.get("/blogs_tags", async (req, res) => {
         const result = await getAllBlogsWithTags();
         res.status(200).send(result);
     } catch (error) {
-        console.error(error);
+        logger.error(error);
         res.status(500).send({ error: "服务器错误" });
     }
 });
@@ -985,7 +985,7 @@ app.get("/tags_blogs", async (req, res) => {
         const result = await getAllTagsWithPostCounts();
         res.status(200).send(result);
     } catch (error) {
-        console.error(error);
+        logger.error(error);
         res.status(500).send({ error: "服务器错误" });
     }
 });
@@ -1151,7 +1151,7 @@ app.get("/blogs_man", AUTH_ENABLED ? authMiddleware : (req, res, next) => next()
         const result = await getAllTagsWithPostCounts();
         res.status(200).send(result);
     } catch (error) {
-        console.error(error);
+        logger.error(error);
         res.status(500).send({ error: "服务器错误" });
     }
 });
@@ -1240,7 +1240,7 @@ app.post('/blog/img/upload', (AUTH_ENABLED ? [authMiddleware, upload.single('edi
     async (req, res) => {
     // req.file 将包含上传的文件信息
     try {
-        console.log('Uploaded file:', req.file); // 打印文件信息
+        logger.info('Uploaded file:', req.file); // 打印文件信息
         if (req.file) {
             const filePath = `${req.protocol}://${req.get('host')}/blogImgs/${req.file.filename}`; // 生成完整的文件路径
             res.json({
@@ -1256,7 +1256,7 @@ app.post('/blog/img/upload', (AUTH_ENABLED ? [authMiddleware, upload.single('edi
         }
     }
     catch (error) {
-        console.error(error); // 打印错误信息到控制台
+        logger.error(error); // 打印错误信息到控制台
         res.status(500).json({
             success: 0,
             message: '服务器内部错误',
@@ -1302,10 +1302,10 @@ grpcServer.bindAsync(`0.0.0.0:${GRPC_PORT}`,
     grpc.ServerCredentials.createInsecure(),
     (err, port) => {
         if (err) {
-          console.error('Failed to bind server:', err);
+          logger.error('Failed to bind server:', err);
           return;
         }
-        console.log(`grpc server is listening on port:${port}`);
+        logger.info(`grpc server is listening on port:${port}`);
     }
 );
 

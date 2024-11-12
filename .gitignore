@@ -21,13 +21,13 @@ yarn-error.log*
 # other
 .vscode/
 !.gitignore
-/ssl
 
 
 # 忽略文件夹中的所有内容
 temp/*
 uploads/*
 log/*
+ssl/*
 blogImgs/*
 
 # 不忽略文件夹本身
