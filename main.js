@@ -543,7 +543,7 @@ const getBlogsByTags = async (tags) => {
             group: ['Blog.id'], // 按博客 ID 分组
             having: Sequelize.literal(`COUNT("Tags"."id") = ${tags.length}`), // 确保所有标签都匹配
             order: [['time', 'DESC']], // 按时间倒序排序
-            logging: logger.info // 记录 SQL 查询到控制台
+            logging: console.log // 记录 SQL 查询到控制台
         });
 
         // 获取每个博客的标签
