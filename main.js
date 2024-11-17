@@ -1230,14 +1230,14 @@ app.get('/logout',  AUTH_ENABLED ? authMiddleware : (req, res, next) => next(), 
             domain: '.chaosgomoku.fun', // 与创建时的 domain 相同
             expires: new Date(0),  // 设置过期时间为过去的时间
         });
-
+        logger.info("用户成功注销")
         // 如果删除成功，可以进行其他操作，如响应客户端
         res.status(200).send({ message: 'Cookie deleted successfully' });
 
     } catch (error) {
         // 处理异常
         console.error('删除 cookie 时发生错误:', error);
-
+        logger.info("用户注销失败")
         // 响应客户端错误
         res.status(500).send({ error: 'Failed to delete cookie' });
     }
