@@ -1142,13 +1142,13 @@ const isTokenValid = async (token) => {
             });
         });
 
-        // 返回解码后的 userID 和验证通过的状态
-        return { valid: true, userID: decoded.userID };
+        // 返回解码后的 userId 和验证通过的状态
+        return { valid: true, userId: decoded.userId };
     } catch (err) {
         logger.error("验证失败: " + err);
         return {
             valid: false,
-            userID: null
+            userId: null
         };
     }
 };
@@ -1201,7 +1201,7 @@ app.post('/auth', async (req, res) => {
         // 生成 JWT
         const token = jwt.sign({
             createdAt: Date.now(),
-            userID: myGithubId,
+            userId: myGithubId,
         }, SECRET_KEY, { expiresIn: '1h' }); // 1小时过期
         // 可选择将 token 存储在 cookie 中
         res.cookie(AUTH_TOKEN, token, {
@@ -1364,24 +1364,25 @@ const authProto = grpc.loadPackageDefinition(packageDefinition).auth;
 // 实现 gRPC verifyToken 函数
 const verifyToken = async (call, callback) => {
     const token = call.request.token;
+    logger.info("正在验证token["+token+']');
     try {
         const result = await isTokenValid(token);
         if (result.valid) {
-            const userID = result.userID;
+            const userId = result.userId;
             callback(null, {
                 valid: true,
-                userID,
+                userId,
             });
         } else {
             callback(null, {
                 valid: false,
-                userID,
+                userId,
             });
         }
     } catch (error) {
         callback(null, {
             valid: false,
-            userID:null
+            userId:null
        })
     }
 };
