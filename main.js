@@ -1132,21 +1132,27 @@ const AUTH_TOKEN = 'auth_token';
 // 验证 Token 的函数
 const isTokenValid = async (token) => {
     try {
-        await new Promise((resolve, reject) => {
-            jwt.verify(token, SECRET_KEY, (err) => {
+        const decoded = await new Promise((resolve, reject) => {
+            jwt.verify(token, SECRET_KEY, (err, decoded) => {
                 if (err) {
-                    logger.error("token验证失败:token:"+token+" error:"+err);
+                    logger.error("token验证失败: token:" + token + " error:" + err);
                     return reject(err);
                 }
-                resolve(true);
+                resolve(decoded); // 如果验证通过，返回解码后的内容
             });
         });
-        return true;
+
+        // 返回解码后的 userID 和验证通过的状态
+        return { valid: true, userID: decoded.userID };
     } catch (err) {
-        logger.error(err);
-        return false;
+        logger.error("验证失败: " + err);
+        return {
+            valid: false,
+            userID: null
+        };
     }
 };
+
 
 app.get("/blogs_man", AUTH_ENABLED ? authMiddleware : (req, res, next) => next(), async (req, res) => {
     try {
@@ -1193,7 +1199,10 @@ app.post('/auth', async (req, res) => {
         }
         // 登录成功
         // 生成 JWT
-        const token = jwt.sign({ createdAt: Date.now() }, SECRET_KEY, { expiresIn: '1h' }); // 1小时过期
+        const token = jwt.sign({
+            createdAt: Date.now(),
+            userID: myGithubId,
+        }, SECRET_KEY, { expiresIn: '1h' }); // 1小时过期
         // 可选择将 token 存储在 cookie 中
         res.cookie(AUTH_TOKEN, token, {
             httpOnly: true, // 仅通过 HTTP 协议访问
@@ -1356,10 +1365,24 @@ const authProto = grpc.loadPackageDefinition(packageDefinition).auth;
 const verifyToken = async (call, callback) => {
     const token = call.request.token;
     try {
-      const isValid = await isTokenValid(token);
-      callback(null, { valid: isValid }); // 返回验证结果
+        const result = await isTokenValid(token);
+        if (result.valid) {
+            const userID = result.userID;
+            callback(null, {
+                valid: true,
+                userID,
+            });
+        } else {
+            callback(null, {
+                valid: false,
+                userID,
+            });
+        }
     } catch (error) {
-      callback(null, { valid: false });
+        callback(null, {
+            valid: false,
+            userID:null
+       })
     }
 };
 
