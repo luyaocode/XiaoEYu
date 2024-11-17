@@ -11,6 +11,7 @@ import path from 'path';
 import crypto from 'crypto';
 import si from 'systeminformation';
 import { WebSocketServer } from 'ws';
+import { StatusCode } from './common.js';
 
 // 日志模块
 import { createLogger } from './logger.js';
@@ -131,7 +132,7 @@ const authMiddleware = async (req, res, next) => {
     const token = req.cookies[AUTH_TOKEN];
 
     if (!token) {
-      return res.status(401).send("未授权");
+      return res.status(StatusCode.Unauthorized).send("未授权");
     }
 
     try {
@@ -139,7 +140,7 @@ const authMiddleware = async (req, res, next) => {
       next();
     } catch (error) {
       logger.error('Token verification failed:', error);
-      return res.status(401).send("未授权");
+      return res.status(StatusCode.Unauthorized).send("未授权");
     }
 };
 
