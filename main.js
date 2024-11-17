@@ -1220,6 +1220,29 @@ app.post('/auth', async (req, res) => {
     }
 });
 
+app.get('/logout',  AUTH_ENABLED ? authMiddleware : (req, res, next) => next(), async (req, res) => {
+    try {
+        res.cookie(AUTH_TOKEN, '', {
+            httpOnly: true,    // 确保是 httpOnly
+            secure: true,      // 如果是 secure cookie，确保使用 https
+            sameSite: 'None',  // 与设置时相同
+            path: '/',         // 确保与创建时的 path 相同
+            domain: '.chaosgomoku.fun', // 与创建时的 domain 相同
+            expires: new Date(0),  // 设置过期时间为过去的时间
+        });
+
+        // 如果删除成功，可以进行其他操作，如响应客户端
+        res.status(200).send({ message: 'Cookie deleted successfully' });
+
+    } catch (error) {
+        // 处理异常
+        console.error('删除 cookie 时发生错误:', error);
+
+        // 响应客户端错误
+        res.status(500).send({ error: 'Failed to delete cookie' });
+    }
+})
+
 // 图片上传
 // 设置上传目录
 const uploadDir = "blogImgs";
