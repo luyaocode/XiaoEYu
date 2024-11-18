@@ -1203,7 +1203,7 @@ app.post('/auth', async (req, res) => {
         const token = jwt.sign({
             createdAt: Date.now(),
             userId: myGithubId,
-        }, SECRET_KEY, { expiresIn: '1h' }); // 1小时过期
+        }, SECRET_KEY, { expiresIn: '24h' }); // 24小时过期
         // 可选择将 token 存储在 cookie 中
         res.cookie(AUTH_TOKEN, token, {
             httpOnly: true, // 仅通过 HTTP 协议访问
