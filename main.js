@@ -92,6 +92,27 @@ const initdb = () => {
     Blog.belongsToMany(Tag, { through: BlogTag });
     Tag.belongsToMany(Blog, { through: BlogTag });
 
+    // 创建User模型
+    const User = sequelize.define('User', {
+        id: {
+            type: DataTypes.INTEGER,  // 自增主键
+            primaryKey: true,         // 设置为主键
+            autoIncrement: true,      // 自增
+        },
+        githubUserId: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            unique: true,             // 确保 githubUserId 唯一
+        },
+        role: {
+            type: DataTypes.ENUM('admin', 'user'), // 角色字段
+            allowNull: false,
+            defaultValue: 'user',  // 默认角色为 user
+        },
+    }, {
+        timestamps: true,  // 自动管理 createdAt 和 updatedAt
+    });
+
     // 同步数据库
     // sequelize.sync({ force: true }); // 清空数据库，慎用
     sequelize.sync()
@@ -102,7 +123,7 @@ const initdb = () => {
         logger.error('同步失败:', err);
     });
 
-    return { sequelize, Blog, Tag, BlogTag };
+    return { sequelize, Blog, Tag, BlogTag, User };
 }
 
 // 检查是否启用了软删除
@@ -1194,15 +1215,22 @@ app.post('/auth', async (req, res) => {
         });
 
         const { id: githubUserId } = userResponse.data;
-        if (!githubUserId || githubUserId !== myGithubId) { //验证失败
+        if (!githubUserId) {
             res.status(200).send(false);
             return;
+        }
+        // 查找是否有该 githubUserId 的记录
+        const { User } = db;
+        let user = await User.findOne({ where: { githubUserId } });
+        if (!user) {
+            const role = githubUserId === myGithubId ? 'admin' : 'user'; // 判断角色
+            user = await User.create({ githubUserId, role }); // 创建用户时指定角色
         }
         // 登录成功
         // 生成 JWT
         const token = jwt.sign({
             createdAt: Date.now(),
-            userId: myGithubId,
+            userId: githubUserId,
         }, SECRET_KEY, { expiresIn: '24h' }); // 24小时过期
         // 可选择将 token 存储在 cookie 中
         res.cookie(AUTH_TOKEN, token, {
