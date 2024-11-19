@@ -153,12 +153,17 @@ const authMiddleware = async (req, res, next) => {
     const token = req.cookies[AUTH_TOKEN];
 
     if (!token) {
-      return res.status(StatusCode.Unauthorized).send("未授权");
+      return res.status(StatusCode.Unauthorized).send("无效token");
     }
 
     try {
-      await verifyTokenPromise(token);
-      next();
+        const response = await verifyTokenPromise(token);
+        const { userId } = response;
+        if (userId !== myGithubId) {
+            logger.info("用户 "+userId +"未授权");
+            return res.status(StatusCode.Unauthorized).send("用户 "+userId +"未授权");
+        }
+        next();
     } catch (error) {
       logger.error('Token verification failed:', error);
       return res.status(StatusCode.Unauthorized).send("未授权");
