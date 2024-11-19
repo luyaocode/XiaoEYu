@@ -159,7 +159,7 @@ const authMiddleware = async (req, res, next) => {
     try {
         const response = await verifyTokenPromise(token);
         const { userId } = response;
-        if (userId !== myGithubId) {
+        if (parseInt(userId) !== myGithubId) {
             logger.info("用户 "+userId +"未授权");
             return res.status(StatusCode.Unauthorized).send("用户 "+userId +"未授权");
         }
