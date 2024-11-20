@@ -1247,7 +1247,9 @@ app.post('/auth', async (req, res) => {
             maxAge: 60 * 60 * 1000, // cookie 有效期为 1 小时
         });
         logger.info("已生成博客网站的token: "+token);
-        res.status(200).send(true);
+        res.status(200).send({
+            id:githubUserId
+        });
     } catch (error) {
         logger.error(error);
         res.status(500).send("已超时");
