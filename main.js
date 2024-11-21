@@ -1255,7 +1255,7 @@ app.post('/auth', async (req, res) => {
             sameSite: 'None', // 允许跨站请求
             path: '/',// 设置 cookie 的路径为根路径
             domain: "."+paras["domain"],// 在子域名下共享
-            maxAge: 60 * 60 * 1000, // cookie 有效期为 1 小时
+            maxAge: 24 * 60 * 60 * 1000, // cookie 有效期为 24 小时
         });
         logger.info("已生成博客网站的token: "+token);
         res.status(200).send({
