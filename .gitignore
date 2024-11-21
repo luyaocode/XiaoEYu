@@ -38,3 +38,4 @@ blogImgs/*
 deploy.sh
 *.db
 *.tar.gz
+*.yaml
