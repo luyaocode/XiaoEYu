@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import cookieParser from 'cookie-parser';
 import multer from 'multer';
 import fs_extra from 'fs-extra';
+import yaml from 'js-yaml';
 import path from 'path';
 import crypto from 'crypto';
 import si from 'systeminformation';
@@ -820,8 +821,8 @@ const port = 5001;
 let ssl_crt, ssl_key;
 let server, options;
 if (process.env.NODE_ENV === 'prod') {
-    ssl_crt = '/home/luyao/codes/XiaoEYu/ssl/api.chaosgomoku.fun.pem';
-    ssl_key = '/home/luyao/codes/XiaoEYu/ssl/api.chaosgomoku.fun.key';
+    ssl_crt = path.join(process.cwd(), './ssl/s.pem');
+    ssl_key = path.join(process.cwd(), './ssl/s.key');
     options = {
         key: fs.readFileSync(ssl_key),
         cert: fs.readFileSync(ssl_crt)
@@ -830,6 +831,16 @@ if (process.env.NODE_ENV === 'prod') {
 }
 else if (process.env.NODE_ENV === 'dev') {
     server = http.createServer(app);
+}
+
+// 同步加载和解析 YAML 文件
+let paras = {};
+try {
+    const fileContents = fs.readFileSync('config.yaml', 'utf8');  // 同步读取文件
+    const data = yaml.load(fileContents);
+    paras["domain"] = data.domain;
+} catch (error) {
+    console.error('Error reading or parsing the YAML file:', error);
 }
 
 // 设置请求体大小限制为 50MB（默认是 1MB）
@@ -1243,7 +1254,7 @@ app.post('/auth', async (req, res) => {
             secure: true,   // 仅在 HTTPS 上使用
             sameSite: 'None', // 允许跨站请求
             path: '/',// 设置 cookie 的路径为根路径
-            domain: ".chaosgomoku.fun",// 在子域名下共享
+            domain: "."+paras["domain"],// 在子域名下共享
             maxAge: 60 * 60 * 1000, // cookie 有效期为 1 小时
         });
         logger.info("已生成博客网站的token: "+token);
@@ -1263,7 +1274,7 @@ app.get('/logout',  AUTH_ENABLED ? authMiddleware : (req, res, next) => next(), 
             secure: true,      // 如果是 secure cookie，确保使用 https
             sameSite: 'None',  // 与设置时相同
             path: '/',         // 确保与创建时的 path 相同
-            domain: '.chaosgomoku.fun', // 与创建时的 domain 相同
+            domain: paras["domain"], // 与创建时的 domain 相同
             expires: new Date(0),  // 设置过期时间为过去的时间
         });
         logger.info("用户成功注销")
