@@ -502,6 +502,54 @@ const updateBlog = async (uuid, title, content) => {
     }
 }
 
+// 更新时创建博客
+const writeThroughBlog = async (uuid, title, content,tags) => {
+    const { Blog } = db;
+    try {
+        // 尝试更新记录
+        const [updatedRows] = await Blog.update(
+            {
+                title: title,
+                content: content,
+                time: new Date() // 更新记录的时间
+            },
+            {
+                where: { id: uuid }
+            }
+        );
+
+        // 如果更新操作没有影响任何行，说明记录不存在
+        if (updatedRows > 0) {
+            logger.info(`Blog post with ID ${uuid} was successfully updated.`);
+            return uuid;
+        } else {
+            logger.warn(`No blog post found with ID ${uuid}. Creating new record...`);
+
+            try {
+                postBlog(uuid,title,content,tags);
+                // 如果记录不存在，创建新的记录
+                // const newBlog = await Blog.create({
+                //     id: uuid,       // 使用提供的 uuid
+                //     title: title,   // 设置标题
+                //     author: 'luyaocode', // 作者
+                //     content: content, // 设置内容
+                //     time: new Date() // 创建时间
+                // });
+
+                // logger.info(`New blog post with ID ${uuid} was successfully created.`);
+                return uuid;
+            } catch (error) {
+                // 如果创建操作失败，记录异常
+                logger.error(`Error occurred while creating blog post with ID ${uuid}:`, error);
+                return false;
+            }
+        }
+    } catch (error) {
+        logger.error('Error occurred while updating or creating blog:', error);
+        return false;
+    }
+}
+
 // 更新博客标题
 const updateBlogTitle = async (uuid, title) => {
     const { Blog } = db;
@@ -624,6 +672,7 @@ const getBlogById = async (id) => {
         }
     } catch (error) {
         logger.error('Error finding blog by id:', error);
+        return null;
     }
 };
 
@@ -946,7 +995,7 @@ app.post('/update', AUTH_ENABLED ? authMiddleware : (req, res, next) => next(), 
             return;
         }
         if (type === 'blog') {
-            opRet=updateBlog(uuid,title,content);
+            opRet= await updateBlog(uuid,title,content);
         }
         // 向父进程发送消息
         // process.send({ received: true });
@@ -955,7 +1004,38 @@ app.post('/update', AUTH_ENABLED ? authMiddleware : (req, res, next) => next(), 
             res.status(200).send({ data:"博客修改成功！",code:0});
         }
         else {
-            res.status(200).send({data: "博客修改失败",code:-1});
+            res.status(200).send({data: "博客修改失败",code:-2});
+        }
+    }
+    catch(error) {
+        logger.error(error);
+    }
+});
+
+// 写时创建，如果没有记录就创建
+app.post('/write-through', AUTH_ENABLED ? authMiddleware : (req, res, next) => next(), async (req, res) => {
+    const { type, uuid, title, content } = req.body;
+    // const pwd = req.body['pwd[]'];
+    const tags = Array.isArray(req.body['tags[]']) ? req.body['tags[]'] : [req.body['tags[]']];
+
+    let opRet = false;
+    try {
+        // if (!check(pwd)) {
+        //     res.status(200).send({data: "博客上传失败！暗号错误",code:-1});
+        //     return;
+        // }
+        if (type === 'note') {
+            opRet= await writeThroughBlog(uuid,title,content,tags);
+        }
+        if (opRet) {
+            res.status(200).send({
+                data: "笔记创建成功",
+                code: 0,
+                id: opRet
+            });
+        }
+        else {
+            res.status(200).send({data: "笔记创建失败",code:-2});
         }
     }
     catch(error) {
@@ -1040,6 +1120,7 @@ app.get('/blog', async (req, res) => {
     }
     catch(error) {
         logger.error(error);
+        res.status(500).send({ error: "服务器错误" });
     }
 });
 
