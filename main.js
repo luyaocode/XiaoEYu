@@ -1370,7 +1370,7 @@ app.post('/auth', async (req, res) => {
     }
 });
 
-app.get('/logout',  AUTH_ENABLED ? authMiddleware : (req, res, next) => next(), async (req, res) => {
+app.get('/logout',  AUTH_ENABLED ? logoutMiddleware : (req, res, next) => next(), async (req, res) => {
     try {
         res.cookie(AUTH_TOKEN, '', {
             httpOnly: true,    // 确保是 httpOnly
